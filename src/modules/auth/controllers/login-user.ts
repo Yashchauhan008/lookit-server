@@ -8,7 +8,7 @@ import { createJWTToken } from '@/shared/utilities/token.js';
 
 export const ValidationSchema = {
     body: z.object({
-        email: z.string().trim().min(1).max(255),
+        email: z.email().trim().toLowerCase(),
         password: z.string().trim().min(5).max(255),
     }),
 };
@@ -26,13 +26,16 @@ export async function Controller(
     if (!user)
         return res.status(STATUS_CODES.NOT_FOUND).json({ message: 'Invalid email or password' });
 
+    if (user.status === 'suspended')
+        return res.status(STATUS_CODES.FORBIDDEN).json({ message: 'Account suspended' });
+
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid)
         return res.status(STATUS_CODES.BAD_REQUEST).json({ message: 'Invalid email or password' });
 
     const accessToken = await createJWTToken(
-        { type: TOKEN_TYPES.USER_ACCESS_TOKEN, user_id: user.id },
+        { type: TOKEN_TYPES.USER_ACCESS_TOKEN, user_id: user.id, role: user.role },
         '24h',
     );
 
@@ -42,6 +45,9 @@ export async function Controller(
             id: user.id,
             name: user.name,
             email: user.email,
+            role: user.role,
+            status: user.status,
+            studio_name: user.studio_name,
         },
     });
 }

@@ -16,6 +16,8 @@
 12. **SMTP:** Real credentials later via `.env`; local uses dummy SMTP so the API boots.
 13. **Docker Hub images:** `yashchauhan008/lookit-server`, `yashchauhan008/lookit-client` (worker may share server image with different CMD).
 
+14. **Admin seed password (local):** `LookitAdmin!change-me` for `yashchauhan1775@gmail.com` — change after first login. Registering that email later also forces `role=admin`.
+
 ## Open
 
 - Real SMTP when OTP mail must deliver
