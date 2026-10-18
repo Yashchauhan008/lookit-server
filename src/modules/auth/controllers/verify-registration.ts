@@ -6,6 +6,7 @@ import z from 'zod';
 import RedisClient from '@/shared/configs/redis.js';
 import { createJWTToken, decryptEncryptedToken } from '@/shared/utilities/token.js';
 import bcrypt from 'bcryptjs';
+import env from '@/shared/configs/env.js';
 
 export const ValidationSchema = {
     body: z.object({
@@ -40,18 +41,22 @@ export async function Controller(
     };
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const normalizedEmail = email.trim().toLowerCase();
+    const role = normalizedEmail === env.ADMIN_EMAIL.toLowerCase() ? 'admin' : 'photographer';
 
     const newUser = await db.queryOne(
         `
-            INSERT INTO users (name, email, password_hash)
-            VALUES ($1, $2, $3)
-            RETURNING *
+            INSERT INTO users (name, email, password_hash, role, status)
+            VALUES ($1, $2, $3, $4, 'active')
+            RETURNING id, name, email, role, status, studio_name
         `,
-        [name, email, passwordHash],
+        [name, normalizedEmail, passwordHash, role],
     );
 
+    await RedisClient.del(token);
+
     const accessToken = await createJWTToken(
-        { type: TOKEN_TYPES.USER_ACCESS_TOKEN, user_id: newUser.id },
+        { type: TOKEN_TYPES.USER_ACCESS_TOKEN, user_id: newUser.id, role: newUser.role },
         '1h',
     );
 
@@ -61,6 +66,9 @@ export async function Controller(
             id: newUser.id,
             name: newUser.name,
             email: newUser.email,
+            role: newUser.role,
+            status: newUser.status,
+            studio_name: newUser.studio_name,
         },
     });
 }
