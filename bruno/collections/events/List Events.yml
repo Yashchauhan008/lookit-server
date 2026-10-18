@@ -1,0 +1,15 @@
+info:
+  name: List Events
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{host}}/events"
+  headers:
+    - name: Authorization
+      value: "Bearer {{access_token}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
