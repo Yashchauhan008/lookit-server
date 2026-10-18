@@ -16,6 +16,7 @@ import {
 } from '@/shared/configs/media-storage.js';
 import { enqueueProcessPhoto } from '../queues/process-photo.queue.js';
 import { MAX_PHOTO_BYTES } from '../uploads.constants.js';
+import Logger from '@/shared/configs/logger.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -110,9 +111,10 @@ export async function Controller(
         });
     }
 
+    let updated: PhotoRow | null = null;
     await db.begin();
     try {
-        const updated = await db.queryOne<PhotoRow>(
+        updated = await db.queryOne<PhotoRow>(
             `
                 UPDATE photos
                 SET status = 'uploaded',
@@ -151,14 +153,20 @@ export async function Controller(
         }
 
         await db.commit();
-
-        await enqueueProcessPhoto({ photoId, eventId });
-
-        return res.status(STATUS_CODES.OK).json({
-            photo: publicPhoto(updated),
-        });
     } catch (err) {
         await db.rollback();
         throw err;
     }
+
+    try {
+        await enqueueProcessPhoto({ photoId, eventId });
+    } catch (err) {
+        Logger.error('enqueueProcessPhoto failed', {
+            stack: err instanceof Error ? err.stack : String(err),
+        });
+    }
+
+    return res.status(STATUS_CODES.OK).json({
+        photo: publicPhoto(updated!),
+    });
 }

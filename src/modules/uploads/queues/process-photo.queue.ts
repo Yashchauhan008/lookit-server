@@ -36,8 +36,9 @@ export function getProcessPhotoQueue(): Queue<ProcessPhotoJob> {
 }
 
 export async function enqueueProcessPhoto(job: ProcessPhotoJob): Promise<void> {
+    // BullMQ custom jobId cannot contain ':'
     await getProcessPhotoQueue().add('process', job, {
-        jobId: `photo:${job.photoId}`,
+        jobId: `photo-${job.photoId}`,
     });
 }
 
