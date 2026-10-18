@@ -40,10 +40,17 @@ const envSchema = z.object({
     SMTP_PASSWORD: z.string(),
 
     // AWS
-    AWS_REGION: z.string(),
-    AWS_ACCESS_KEY_ID: z.string(),
-    AWS_SECRET_ACCESS_KEY: z.string(),
-    AWS_S3_BACKUP_BUCKET: z.string(),
+    AWS_REGION: z.string().default('ap-south-1'),
+    AWS_ACCESS_KEY_ID: z.string().default('dummy'),
+    AWS_SECRET_ACCESS_KEY: z.string().default('dummy'),
+    AWS_S3_BACKUP_BUCKET: z.string().default('lookit-backups-dev'),
+
+    // Lookit
+    ADMIN_EMAIL: z.email().default('yashchauhan1775@gmail.com'),
+    MAIL_FROM: z.string().optional(),
+    APP_BASE_URL: z.string().default('http://localhost:5173'),
+    API_BASE_URL: z.string().default('http://localhost:3007'),
+    CORS_ORIGINS: z.string().default('http://localhost:5173'),
 });
 
 const { data: env, error } = envSchema.safeParse(process.env);
