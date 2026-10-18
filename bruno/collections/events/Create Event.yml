@@ -1,0 +1,25 @@
+info:
+  name: Create Event
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{host}}/events"
+  headers:
+    - name: Authorization
+      value: "Bearer {{access_token}}"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Ananya & Rohan",
+        "description": "Wedding weekend",
+        "event_date": "2026-12-14",
+        "visibility": "selfie_only",
+        "pin": "1234"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true

@@ -1,0 +1,21 @@
+info:
+  name: Create Upload Session
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{host}}/events/{{event_id}}/uploads/sessions"
+  headers:
+    - name: Authorization
+      value: "Bearer {{access_token}}"
+  body:
+    type: json
+    data: |-
+      {
+        "file_count": 2
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
