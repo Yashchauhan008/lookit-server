@@ -21,6 +21,9 @@
 ## Open
 
 - Real SMTP when OTP mail must deliver
-- R2 + AWS keys when uploads/faces land
+- Real R2 API token values in local `.env` (placeholders block uploads until set)
+- AWS Rekognition keys when face indexing lands
 
 15. **Events API (2026-10-19):** Photographer CRUD under `/events` with ownership → 404. Public `GET /e/:slug` returns needs_pin + studio name only. Soft-delete via `status=deleted`. QR PNG at `/events/:id/qr`.
+
+16. **Media storage (2026-10-19):** Cloudflare R2 only for event photos (presigned multipart). No MinIO / AWS S3 for media. AWS_* kept for Rekognition + backup bucket. First upload session auto-grants `trial_7d` (500 photos) once per user when no active purchase exists.

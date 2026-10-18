@@ -26,6 +26,7 @@ import {
     Controller as getEventQr,
     ValidationSchema as getEventQrSchema,
 } from '@/modules/events/controllers/get-event-qr.js';
+import uploadsRoutes from '@/modules/uploads/uploads.route.js';
 
 const router = Router();
 
@@ -40,5 +41,7 @@ router
     .delete(validate(deleteEventSchema), withDatabase(deleteEvent));
 
 router.route('/:id/qr').get(validate(getEventQrSchema), withDatabase(getEventQr));
+
+router.use('/:id', uploadsRoutes);
 
 export default router;

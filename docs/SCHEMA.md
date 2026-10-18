@@ -11,8 +11,8 @@ All IDs are UUID (`uuidv7()`). Timestamps are `timestamptz` (UTC). Display in IS
 | `payment_orders` | Manual UPI orders (`ref_code`, unique `utr`, status machine) |
 | `plan_purchases` | Active quota buckets (`photos_used` / `photos_reserved` / `photo_quota`) |
 | `events` | Per-owner events; `slug` unique; `theme` jsonb; Rekognition `face_collection_id` |
-| `upload_sessions` | Quota reservation window for multipart uploads |
-| `photos` | Per-event media + status machine; unique `(event_id, content_hash)` when hashed |
+| `upload_sessions` | Quota reservation window for R2 multipart uploads |
+| `photos` | Per-event media + status machine; `multipart_upload_id` / `content_type` / `original_filename` during upload; unique `(event_id, content_hash)` when hashed |
 | `faces` | Rekognition face ids scoped to `event_id` |
 | `guest_consents` | Consent version + hashed IP |
 | `share_links` | Unguessable personal results links |

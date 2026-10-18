@@ -1,0 +1,23 @@
+info:
+  name: Create Multipart
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{host}}/events/{{event_id}}/uploads/sessions/{{session_id}}/files"
+  headers:
+    - name: Authorization
+      value: "Bearer {{access_token}}"
+  body:
+    type: json
+    data: |-
+      {
+        "filename": "test.jpg",
+        "content_type": "image/jpeg",
+        "size_bytes": 123456
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true

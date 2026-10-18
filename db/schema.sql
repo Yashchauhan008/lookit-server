@@ -177,6 +177,9 @@ CREATE TABLE public.photos (
     expires_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone,
+    multipart_upload_id text,
+    content_type character varying(128),
+    original_filename text,
     CONSTRAINT ck_photos_status CHECK (((status)::text = ANY ((ARRAY['uploading'::character varying, 'uploaded'::character varying, 'processing'::character varying, 'processed'::character varying, 'indexed'::character varying, 'failed'::character varying])::text[])))
 );
 
@@ -845,4 +848,5 @@ ALTER TABLE ONLY public.upload_sessions
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260213214937'),
-    ('20261018234500');
+    ('20261018234500'),
+    ('20261019010000');

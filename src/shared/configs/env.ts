@@ -39,11 +39,18 @@ const envSchema = z.object({
     SMTP_USER: z.string(),
     SMTP_PASSWORD: z.string(),
 
-    // AWS
+    // AWS (Rekognition / backup bucket — not photo media)
     AWS_REGION: z.string().default('ap-south-1'),
     AWS_ACCESS_KEY_ID: z.string().default('dummy'),
     AWS_SECRET_ACCESS_KEY: z.string().default('dummy'),
     AWS_S3_BACKUP_BUCKET: z.string().default('lookit-backups-dev'),
+
+    // Cloudflare R2 — all event photo media (S3-compatible API)
+    R2_ACCOUNT_ID: z.string().default('dummy'),
+    R2_ACCESS_KEY_ID: z.string().default('dummy'),
+    R2_SECRET_ACCESS_KEY: z.string().default('dummy'),
+    R2_BUCKET: z.string().default('lookit-media-dev'),
+    R2_PUBLIC_BASE_URL: z.string().default('https://media.lookit.studio'),
 
     // Lookit
     ADMIN_EMAIL: z.email().default('yashchauhan1775@gmail.com'),
@@ -51,6 +58,9 @@ const envSchema = z.object({
     APP_BASE_URL: z.string().default('http://localhost:5173'),
     API_BASE_URL: z.string().default('http://localhost:3007'),
     CORS_ORIGINS: z.string().default('http://localhost:5173'),
+    FACE_ENGINE: z.enum(['rekognition', 'self_hosted']).default('rekognition'),
+    FACE_MATCH_THRESHOLD: z.coerce.number().default(90),
+    DAILY_FACE_CALL_CAP: z.coerce.number().int().positive().default(5000),
 });
 
 const { data: env, error } = envSchema.safeParse(process.env);
