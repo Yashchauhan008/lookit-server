@@ -34,10 +34,11 @@ export async function Controller(
     if (storedOtp !== otp)
         return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Invalid OTP' });
 
-    const { name, email, password } = decryptedToken as {
+    const { name, email, password, studio_name } = decryptedToken as {
         name: string;
         email: string;
         password: string;
+        studio_name?: string | null;
     };
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -46,11 +47,11 @@ export async function Controller(
 
     const newUser = await db.queryOne(
         `
-            INSERT INTO users (name, email, password_hash, role, status)
-            VALUES ($1, $2, $3, $4, 'active')
+            INSERT INTO users (name, email, password_hash, role, status, studio_name)
+            VALUES ($1, $2, $3, $4, 'active', $5)
             RETURNING id, name, email, role, status, studio_name
         `,
-        [name, normalizedEmail, passwordHash, role],
+        [name, normalizedEmail, passwordHash, role, studio_name ?? null],
     );
 
     await RedisClient.del(token);
