@@ -5,7 +5,11 @@ import z from 'zod';
 import { AbortMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { requireOwnedEvent, type PhotoRow } from '../uploads.helpers.js';
 import { releaseReserved } from '../quota.service.js';
-import { isR2Configured, r2, R2_BUCKET } from '@/shared/configs/r2.js';
+import {
+    isMediaStorageConfigured,
+    mediaS3,
+    MEDIA_BUCKET,
+} from '@/shared/configs/media-storage.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -46,11 +50,11 @@ export async function Controller(
         return res.status(STATUS_CODES.NOT_FOUND).json({ message: 'Photo upload not found' });
     }
 
-    if (isR2Configured() && photo.orig_key && photo.multipart_upload_id) {
+    if (isMediaStorageConfigured() && photo.orig_key && photo.multipart_upload_id) {
         try {
-            await r2.send(
+            await mediaS3.send(
                 new AbortMultipartUploadCommand({
-                    Bucket: R2_BUCKET,
+                    Bucket: MEDIA_BUCKET,
                     Key: photo.orig_key,
                     UploadId: body.upload_id || photo.multipart_upload_id,
                 }),

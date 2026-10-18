@@ -3,7 +3,7 @@ import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
 import { STATUS_CODES } from '@/shared/constants/status-codes.js';
 import z from 'zod';
 import { requireOwnedEvent, publicPhoto, type PhotoRow } from '../uploads.helpers.js';
-import { publicObjectUrl } from '@/shared/configs/r2.js';
+import { publicObjectUrl } from '@/shared/configs/media-storage.js';
 
 export const ValidationSchema = {
     params: z.object({

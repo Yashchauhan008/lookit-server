@@ -14,7 +14,12 @@ import {
     MULTIPART_PART_SIZE,
     normalizeContentType,
 } from '../uploads.constants.js';
-import { isR2Configured, r2, R2_BUCKET } from '@/shared/configs/r2.js';
+import {
+    isMediaStorageConfigured,
+    mediaS3,
+    MEDIA_BUCKET,
+    mediaStorageNotConfiguredMessage,
+} from '@/shared/configs/media-storage.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -34,10 +39,10 @@ export async function Controller(
     _next: NextFunction,
     db: DatabaseClient,
 ) {
-    if (!isR2Configured()) {
+    if (!isMediaStorageConfigured()) {
         return res.status(STATUS_CODES.SERVICE_UNAVAILABLE).json({
-            message: 'R2 is not configured',
-            code: 'r2_not_configured',
+            message: mediaStorageNotConfiguredMessage(),
+            code: 'media_storage_not_configured',
         });
     }
 
@@ -124,15 +129,15 @@ export async function Controller(
         const ext = extensionFor(contentType, body.filename);
         const key = `orig/${eventId}/${photo!.id}.${ext}`;
 
-        const created = await r2.send(
+        const created = await mediaS3.send(
             new CreateMultipartUploadCommand({
-                Bucket: R2_BUCKET,
+                Bucket: MEDIA_BUCKET,
                 Key: key,
                 ContentType: contentType,
             }),
         );
         uploadId = created.UploadId;
-        if (!uploadId) throw new Error('R2 CreateMultipartUpload returned no UploadId');
+            if (!uploadId) throw new Error('CreateMultipartUpload returned no UploadId');
 
         photo = await db.queryOne<PhotoRow>(
             `
@@ -159,9 +164,9 @@ export async function Controller(
         await db.rollback();
         if (uploadId && photo?.orig_key) {
             try {
-                await r2.send(
+                await mediaS3.send(
                     new AbortMultipartUploadCommand({
-                        Bucket: R2_BUCKET,
+                        Bucket: MEDIA_BUCKET,
                         Key: photo.orig_key,
                         UploadId: uploadId,
                     }),

@@ -8,7 +8,12 @@ import {
 } from '@aws-sdk/client-s3';
 import { requireOwnedEvent, publicPhoto, type PhotoRow } from '../uploads.helpers.js';
 import { convertReservedToUsed } from '../quota.service.js';
-import { isR2Configured, r2, R2_BUCKET } from '@/shared/configs/r2.js';
+import {
+    isMediaStorageConfigured,
+    mediaS3,
+    MEDIA_BUCKET,
+    mediaStorageNotConfiguredMessage,
+} from '@/shared/configs/media-storage.js';
 import { enqueueProcessPhoto } from '../queues/process-photo.queue.js';
 import { MAX_PHOTO_BYTES } from '../uploads.constants.js';
 
@@ -36,10 +41,10 @@ export async function Controller(
     _next: NextFunction,
     db: DatabaseClient,
 ) {
-    if (!isR2Configured()) {
+    if (!isMediaStorageConfigured()) {
         return res.status(STATUS_CODES.SERVICE_UNAVAILABLE).json({
-            message: 'R2 is not configured',
-            code: 'r2_not_configured',
+            message: mediaStorageNotConfiguredMessage(),
+            code: 'media_storage_not_configured',
         });
     }
 
@@ -73,9 +78,9 @@ export async function Controller(
 
     const sortedParts = [...body.parts].sort((a, b) => a.PartNumber - b.PartNumber);
 
-    await r2.send(
+    await mediaS3.send(
         new CompleteMultipartUploadCommand({
-            Bucket: R2_BUCKET,
+            Bucket: MEDIA_BUCKET,
             Key: photo.orig_key,
             UploadId: uploadId,
             MultipartUpload: {
@@ -90,9 +95,9 @@ export async function Controller(
         }),
     );
 
-    const head = await r2.send(
+    const head = await mediaS3.send(
         new HeadObjectCommand({
-            Bucket: R2_BUCKET,
+            Bucket: MEDIA_BUCKET,
             Key: photo.orig_key,
         }),
     );

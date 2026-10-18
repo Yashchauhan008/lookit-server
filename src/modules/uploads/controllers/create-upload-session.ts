@@ -5,7 +5,10 @@ import z from 'zod';
 import { requireOwnedEvent } from '../uploads.helpers.js';
 import { ensureActivePurchase, reserveQuota } from '../quota.service.js';
 import { MAX_FILES_PER_SESSION, UPLOAD_SESSION_TTL_HOURS } from '../uploads.constants.js';
-import { isR2Configured } from '@/shared/configs/r2.js';
+import {
+    isMediaStorageConfigured,
+    mediaStorageNotConfiguredMessage,
+} from '@/shared/configs/media-storage.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -22,11 +25,10 @@ export async function Controller(
     _next: NextFunction,
     db: DatabaseClient,
 ) {
-    if (!isR2Configured()) {
+    if (!isMediaStorageConfigured()) {
         return res.status(STATUS_CODES.SERVICE_UNAVAILABLE).json({
-            message:
-                'R2 is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET in .env',
-            code: 'r2_not_configured',
+            message: mediaStorageNotConfiguredMessage(),
+            code: 'media_storage_not_configured',
         });
     }
 

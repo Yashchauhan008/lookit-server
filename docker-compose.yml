@@ -1,6 +1,6 @@
 # Local helpers only — Postgres lives in your existing `postgres-18` container (host :5433).
 # Redis: use host Redis on :6379 (already running).
-# Media: Cloudflare R2 (no MinIO).
+# Media: AWS S3 now (MEDIA_STORAGE_PROVIDER=s3); R2 later. No MinIO.
 
 services:
   lookit-api:

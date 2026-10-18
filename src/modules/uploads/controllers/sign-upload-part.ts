@@ -6,7 +6,12 @@ import { UploadPartCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { requireOwnedEvent, type PhotoRow } from '../uploads.helpers.js';
 import { PART_URL_EXPIRES_SECONDS } from '../uploads.constants.js';
-import { isR2Configured, r2, R2_BUCKET } from '@/shared/configs/r2.js';
+import {
+    isMediaStorageConfigured,
+    mediaS3,
+    MEDIA_BUCKET,
+    mediaStorageNotConfiguredMessage,
+} from '@/shared/configs/media-storage.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -25,10 +30,10 @@ export async function Controller(
     _next: NextFunction,
     db: DatabaseClient,
 ) {
-    if (!isR2Configured()) {
+    if (!isMediaStorageConfigured()) {
         return res.status(STATUS_CODES.SERVICE_UNAVAILABLE).json({
-            message: 'R2 is not configured',
-            code: 'r2_not_configured',
+            message: mediaStorageNotConfiguredMessage(),
+            code: 'media_storage_not_configured',
         });
     }
 
@@ -61,13 +66,13 @@ export async function Controller(
     }
 
     const command = new UploadPartCommand({
-        Bucket: R2_BUCKET,
+        Bucket: MEDIA_BUCKET,
         Key: photo.orig_key,
         UploadId: uploadId,
         PartNumber: part_number,
     });
 
-    const url = await getSignedUrl(r2, command, { expiresIn: PART_URL_EXPIRES_SECONDS });
+    const url = await getSignedUrl(mediaS3, command, { expiresIn: PART_URL_EXPIRES_SECONDS });
 
     return res.status(STATUS_CODES.OK).json({
         url,

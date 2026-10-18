@@ -5,7 +5,11 @@ import z from 'zod';
 import { AbortMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { requireOwnedEvent, type PhotoRow, type UploadSessionRow } from '../uploads.helpers.js';
 import { releaseReserved } from '../quota.service.js';
-import { isR2Configured, r2, R2_BUCKET } from '@/shared/configs/r2.js';
+import {
+    isMediaStorageConfigured,
+    mediaS3,
+    MEDIA_BUCKET,
+} from '@/shared/configs/media-storage.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -53,14 +57,14 @@ export async function Controller(
         [sessionId],
     );
 
-    if (isR2Configured()) {
+    if (isMediaStorageConfigured()) {
         await Promise.all(
             pending.map(async (photo) => {
                 if (!photo.orig_key || !photo.multipart_upload_id) return;
                 try {
-                    await r2.send(
+                    await mediaS3.send(
                         new AbortMultipartUploadCommand({
-                            Bucket: R2_BUCKET,
+                            Bucket: MEDIA_BUCKET,
                             Key: photo.orig_key,
                             UploadId: photo.multipart_upload_id,
                         }),

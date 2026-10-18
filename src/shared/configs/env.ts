@@ -39,13 +39,18 @@ const envSchema = z.object({
     SMTP_USER: z.string(),
     SMTP_PASSWORD: z.string(),
 
-    // AWS (Rekognition / backup bucket — not photo media)
+    // Media object store: s3 now, r2 when Cloudflare account is ready
+    MEDIA_STORAGE_PROVIDER: z.enum(['s3', 'r2']).default('s3'),
+
+    // AWS — Rekognition, backup, and (when MEDIA_STORAGE_PROVIDER=s3) photo media
     AWS_REGION: z.string().default('ap-south-1'),
     AWS_ACCESS_KEY_ID: z.string().default('dummy'),
     AWS_SECRET_ACCESS_KEY: z.string().default('dummy'),
     AWS_S3_BACKUP_BUCKET: z.string().default('lookit-backups-dev'),
+    AWS_S3_MEDIA_BUCKET: z.string().default('lookit-media-dev'),
+    AWS_S3_PUBLIC_BASE_URL: z.string().default(''),
 
-    // Cloudflare R2 — all event photo media (S3-compatible API)
+    // Cloudflare R2 — flip MEDIA_STORAGE_PROVIDER=r2 when ready
     R2_ACCOUNT_ID: z.string().default('dummy'),
     R2_ACCESS_KEY_ID: z.string().default('dummy'),
     R2_SECRET_ACCESS_KEY: z.string().default('dummy'),

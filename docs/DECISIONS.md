@@ -21,9 +21,10 @@
 ## Open
 
 - Real SMTP when OTP mail must deliver
-- Real R2 API token values in local `.env` (placeholders block uploads until set)
+- Real AWS S3 media credentials in local `.env` (uploads blocked until set)
+- Flip to R2 when Cloudflare account is available (`MEDIA_STORAGE_PROVIDER=r2`)
 - AWS Rekognition keys when face indexing lands
 
 15. **Events API (2026-10-19):** Photographer CRUD under `/events` with ownership → 404. Public `GET /e/:slug` returns needs_pin + studio name only. Soft-delete via `status=deleted`. QR PNG at `/events/:id/qr`.
 
-16. **Media storage (2026-10-19):** Cloudflare R2 only for event photos (presigned multipart). No MinIO / AWS S3 for media. AWS_* kept for Rekognition + backup bucket. First upload session auto-grants `trial_7d` (500 photos) once per user when no active purchase exists.
+16. **Media storage (2026-10-19):** Presigned multipart uploads via S3-compatible API. Provider switch: `MEDIA_STORAGE_PROVIDER=s3|r2` (default **s3** until R2 account is ready). Same upload code path; only env/client endpoint changes. No MinIO. First upload session auto-grants `trial_7d` (500 photos) once per user when no active purchase exists.
