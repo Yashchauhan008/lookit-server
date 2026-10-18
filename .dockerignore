@@ -1,0 +1,10 @@
+
+node_modules
+dist
+logs
+tmp
+files
+commands
+.DS_Store
+.vscode
+.git

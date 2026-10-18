@@ -1,0 +1,22 @@
+info:
+  name: Vefiry Registration
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{host}}/auth/verify-registration"
+  body:
+    type: json
+    data: |-
+      {
+        "token" : "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..GNYCM0YF8PStTJo-PhcQaw._dcBoF_7VViYce20tCD2eQmEwbx-_trjsjta0hWTsN-VcvZndiiUAgjr1OVFOfVeRi6jYwQD5fg8Bm8nGw9AfGJHaYvuITw3-zsuZef0v40QfuEjiHuqI3-c_4W6Nd_gqB5RqeTZmlfBJ-KhXFoICRRjvF1YbiV8na-vDf8F360.R_yJP6PmAR4_cwI6sZfV-g",
+      "otp" : "506744"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

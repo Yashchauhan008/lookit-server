@@ -1,0 +1,22 @@
+info:
+  name: Login User
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{host}}/auth/login"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "rraiyani62@gmail.com",
+        "password": "admin@123"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
