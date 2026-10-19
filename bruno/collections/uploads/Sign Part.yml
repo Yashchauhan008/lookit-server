@@ -1,0 +1,22 @@
+info:
+  name: Sign Part
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{host}}/events/{{event_id}}/uploads/photos/{{photo_id}}/sign-part"
+  headers:
+    - name: Authorization
+      value: "Bearer {{access_token}}"
+  body:
+    type: json
+    data: |-
+      {
+        "part_number": 1,
+        "upload_id": "{{upload_id}}"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
