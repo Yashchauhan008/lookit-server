@@ -1,0 +1,18 @@
+info:
+  name: Unlock Event
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{host}}/e/{{event_slug}}/unlock"
+  body:
+    type: json
+    data: |-
+      {
+        "pin": "1234"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true

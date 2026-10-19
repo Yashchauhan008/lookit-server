@@ -1,0 +1,21 @@
+info:
+  name: Search Selfie
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{host}}/e/{{event_slug}}/search"
+  headers:
+    - name: Authorization
+      value: "Bearer {{guest_token}}"
+  body:
+    type: multipart-form
+    data:
+      - name: selfie
+        type: file
+        value: "@file(./selfie.jpg)"
+  auth: inherit
+
+settings:
+  encodeUrl: true

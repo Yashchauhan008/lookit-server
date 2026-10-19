@@ -3,7 +3,7 @@ import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
 import { STATUS_CODES } from '@/shared/constants/status-codes.js';
 import z from 'zod';
 import { requireOwnedEvent, publicPhoto, type PhotoRow } from '../uploads.helpers.js';
-import { publicObjectUrl } from '@/shared/configs/media-storage.js';
+import { signedGetUrl } from '@/shared/configs/media-storage.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -35,7 +35,7 @@ export async function Controller(
             SELECT *
             FROM photos
             WHERE event_id = $1
-              AND status <> 'failed'
+              AND status IN ('uploaded', 'processing', 'processed', 'indexed')
             ORDER BY created_at DESC
             LIMIT $2 OFFSET $3
         `,
@@ -47,20 +47,34 @@ export async function Controller(
             SELECT COUNT(*)::text AS count
             FROM photos
             WHERE event_id = $1
-              AND status <> 'failed'
+              AND status IN ('uploaded', 'processing', 'processed', 'indexed')
         `,
         [eventId],
     );
 
-    return res.status(STATUS_CODES.OK).json({
-        photos: rows.map((row) => {
+    const photos = await Promise.all(
+        rows.map(async (row) => {
             const base = publicPhoto(row);
+            const viewKey = row.thumb_key || row.prev_key || row.orig_key;
+            const previewKey = row.prev_key || row.orig_key;
+            let thumb_url: string | null = null;
+            let preview_url: string | null = null;
+            try {
+                if (viewKey) thumb_url = await signedGetUrl(viewKey, 3600);
+                if (previewKey) preview_url = await signedGetUrl(previewKey, 3600);
+            } catch {
+                /* leave null if signing fails */
+            }
             return {
                 ...base,
-                thumb_url: row.thumb_key ? publicObjectUrl(row.thumb_key) : null,
-                preview_url: row.prev_key ? publicObjectUrl(row.prev_key) : null,
+                thumb_url,
+                preview_url,
             };
         }),
+    );
+
+    return res.status(STATUS_CODES.OK).json({
+        photos,
         total: Number(total?.count ?? 0),
     });
 }

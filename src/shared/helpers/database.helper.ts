@@ -1,6 +1,6 @@
 import { pool } from '@/shared/configs/database.js';
 
-type PrimitiveParam = string | number | boolean | null | Date;
+type PrimitiveParam = string | number | boolean | null | Date | string[] | number[];
 type QueryParams = PrimitiveParam[];
 type NamedParams = Record<string, PrimitiveParam | undefined>;
 

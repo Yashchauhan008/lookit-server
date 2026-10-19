@@ -1,4 +1,5 @@
-import { S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import env from './env.js';
 
 export type MediaStorageProvider = 's3' | 'r2';
@@ -66,6 +67,35 @@ export const MEDIA_PUBLIC_BASE_URL = publicBase.replace(/\/$/, '');
 export function publicObjectUrl(key: string): string {
     return `${MEDIA_PUBLIC_BASE_URL}/${key.replace(/^\//, '')}`;
 }
+
+/** Short-lived signed GET for private bucket objects (studio previews). */
+export async function signedGetUrl(key: string, expiresIn = 3600): Promise<string> {
+    return getSignedUrl(
+        mediaS3,
+        new GetObjectCommand({
+            Bucket: MEDIA_BUCKET,
+            Key: key,
+        }),
+        { expiresIn },
+    );
+}
+
+export async function putMediaObject(
+    key: string,
+    body: Buffer,
+    contentType: string,
+): Promise<void> {
+    await mediaS3.send(
+        new PutObjectCommand({
+            Bucket: MEDIA_BUCKET,
+            Key: key,
+            Body: body,
+            ContentType: contentType,
+        }),
+    );
+}
+
+export { GetObjectCommand };
 
 export function mediaStorageNotConfiguredMessage(): string {
     if (mediaProvider === 'r2') {

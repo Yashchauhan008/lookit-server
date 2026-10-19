@@ -28,3 +28,5 @@
 15. **Events API (2026-10-19):** Photographer CRUD under `/events` with ownership → 404. Public `GET /e/:slug` returns needs_pin + studio name only. Soft-delete via `status=deleted`. QR PNG at `/events/:id/qr`.
 
 16. **Media storage (2026-10-19):** Presigned multipart uploads via S3-compatible API. Provider switch: `MEDIA_STORAGE_PROVIDER=s3|r2` (default **s3** until R2 account is ready). Same upload code path; only env/client endpoint changes. No MinIO. First upload session auto-grants `trial_7d` (500 photos) once per user when no active purchase exists.
+
+17. **Guest selfie search (2026-10-19):** Rekognition FaceEngine (`FACE_ENGINE=rekognition`). After `process-photo`, worker enqueues `index-faces` into collection `lookit_evt_{eventId}`. Guest flow: `POST /e/:slug/unlock` → consent → multipart selfie search (never stored). PIN lockout 5 tries / 15 min (Redis). IAM on the AWS key needs Rekognition in `ap-south-1`: `CreateCollection`, `IndexFaces`, `SearchFacesByImage`, `DeleteFaces`, `DeleteCollection`.
