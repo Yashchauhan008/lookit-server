@@ -3,6 +3,7 @@ import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
 import { STATUS_CODES } from '@/shared/constants/status-codes.js';
 import z from 'zod';
 import sharp from 'sharp';
+import crypto from 'node:crypto';
 import env from '@/shared/configs/env.js';
 import { signedGetUrl } from '@/shared/configs/media-storage.js';
 import { createFaceEngine } from '@/modules/faces/face-engine.factory.js';
@@ -12,6 +13,13 @@ import {
     loadPublicEventBySlug,
     storeGuestMatches,
 } from '../guest.helpers.js';
+import {
+    isUuid,
+    issueScanToken,
+    replacePreviousSelfies,
+    saveSelfie,
+    type ScanStatus,
+} from '../guest-scans.helpers.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -84,6 +92,32 @@ export async function Controller(
         });
     }
 
+    const consentVersion = await getConsentVersion(db);
+    const rawGuestId = (req.body as { guest_id?: unknown } | undefined)?.guest_id;
+    const guestId = isUuid(rawGuestId) ? rawGuestId : crypto.randomUUID();
+
+    /** Save this scan (selfie + which photos matched) and hand the guest a token to reopen it later. */
+    const recordScan = async (status: ScanStatus, matchedIds: string[], keepSelfie: boolean) => {
+        if (keepSelfie) await replacePreviousSelfies(db, event.id, guestId);
+        const scan = await db.queryOne<{ id: string; event_id: string }>(
+            `
+                INSERT INTO guest_scans (event_id, guest_id, matched_photo_ids, match_count, status, consent_version)
+                VALUES ($1, $2, $3::uuid[], $4, $5, $6)
+                RETURNING id, event_id
+            `,
+            [event.id, guestId, matchedIds, matchedIds.length, status, consentVersion],
+        );
+        if (keepSelfie) {
+            const key = await saveSelfie(event.id, scan!.id, jpeg);
+            if (key) await db.query('UPDATE guest_scans SET selfie_key = $2 WHERE id = $1', [scan!.id, key]);
+        }
+        return {
+            scan_id: scan!.id,
+            guest_id: guestId,
+            scan_token: await issueScanToken(scan!, consentVersion),
+        };
+    };
+
     const engine = createFaceEngine(db);
     let matches;
     try {
@@ -95,10 +129,23 @@ export async function Controller(
     } catch (err: any) {
         const name = err?.name || err?.Code || '';
         if (
+            name === 'AbortError' ||
+            name === 'TimeoutError' ||
+            err?.code === 'ENOTFOUND' ||
+            err?.code === 'EAI_AGAIN' ||
+            String(err?.message || '').includes('aborted')
+        ) {
+            return res.status(503).json({
+                message: 'Face search timed out. Check the connection and try again.',
+                code: 'face_search_timeout',
+            });
+        }
+        if (
             name === 'InvalidParameterException' ||
             String(err?.message || '').includes('no face') ||
             String(err?.message || '').includes('There are no faces')
         ) {
+            await recordScan('no_face', [], false);
             return res.status(STATUS_CODES.OK).json({
                 photos: [],
                 match_count: 0,
@@ -135,11 +182,13 @@ export async function Controller(
     );
 
     if (!photoIds.length) {
+        const scan = await recordScan('no_match', [], true);
         return res.status(STATUS_CODES.OK).json({
             photos: [],
             match_count: 0,
             message: 'No matching photos found. Try another selfie or better lighting.',
             code: 'no_matches',
+            ...scan,
         });
     }
 
@@ -176,8 +225,15 @@ export async function Controller(
         }),
     );
 
+    const scan = await recordScan(
+        photos.length ? 'matched' : 'no_match',
+        photos.map((p) => p.id),
+        true,
+    );
+
     return res.status(STATUS_CODES.OK).json({
         photos,
         match_count: photos.length,
+        ...scan,
     });
 }

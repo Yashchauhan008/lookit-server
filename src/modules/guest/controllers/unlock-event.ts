@@ -2,17 +2,10 @@ import type { NextFunction, Request, Response } from 'express';
 import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
 import { STATUS_CODES } from '@/shared/constants/status-codes.js';
 import z from 'zod';
-import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { createJWTToken } from '@/shared/utilities/token.js';
 import { TOKEN_TYPES } from '@/modules/auth/auth.constant.js';
-import {
-    assertPinNotLocked,
-    clearPinFailures,
-    hashIp,
-    loadPublicEventBySlug,
-    recordPinFailure,
-} from '../guest.helpers.js';
+import { loadPublicEventBySlug } from '../guest.helpers.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -24,6 +17,8 @@ export const ValidationSchema = {
             .min(3)
             .max(64),
     }),
+    // PIN was removed from the guest flow. Accept (and ignore) a legacy
+    // `pin` field so older clients don't fail validation.
     body: z.object({
         pin: z.string().trim().min(4).max(12).optional().nullable(),
     }),
@@ -36,38 +31,14 @@ export async function Controller(
     db: DatabaseClient,
 ) {
     const { slug } = req.params as z.infer<typeof ValidationSchema.params>;
-    const body = req.body as z.infer<typeof ValidationSchema.body>;
-    const ipHash = hashIp(req.ip);
 
     const event = await loadPublicEventBySlug(db, slug);
     if (!event) {
         return res.status(STATUS_CODES.NOT_FOUND).json({ message: 'Event not found' });
     }
 
-    try {
-        await assertPinNotLocked(event.id, ipHash);
-    } catch (err: any) {
-        return res.status(err.statusCode || 429).json({ message: err.message, code: err.code });
-    }
-
-    if (event.pin_hash) {
-        if (!body.pin) {
-            return res.status(STATUS_CODES.BAD_REQUEST).json({
-                message: 'PIN required',
-                code: 'pin_required',
-            });
-        }
-        const ok = await bcrypt.compare(body.pin, event.pin_hash);
-        if (!ok) {
-            await recordPinFailure(event.id, ipHash);
-            return res.status(STATUS_CODES.UNAUTHORIZED).json({
-                message: 'Incorrect PIN',
-                code: 'bad_pin',
-            });
-        }
-        await clearPinFailures(event.id, ipHash);
-    }
-
+    // Guest access no longer requires a PIN (share link + consent + selfie
+    // is the gate). Any legacy pin_hash on the event is ignored.
     const jti = crypto.randomUUID();
     const token = await createJWTToken(
         {

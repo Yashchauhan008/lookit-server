@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
 import { STATUS_CODES } from '@/shared/constants/status-codes.js';
-import { publicEvent, type EventRow } from '../events.helpers.js';
+import { publicEventWithBanner, type EventRow } from '../events.helpers.js';
 
 export async function Controller(
     req: Request,
@@ -25,6 +25,6 @@ export async function Controller(
     );
 
     return res.status(STATUS_CODES.OK).json({
-        events: rows.map(publicEvent),
+        events: await Promise.all(rows.map(publicEventWithBanner)),
     });
 }

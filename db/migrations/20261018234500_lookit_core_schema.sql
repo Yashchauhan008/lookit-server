@@ -399,24 +399,25 @@ INSERT INTO settings (key, value) VALUES
   ),
   (
     'admin',
-    '{"bootstrap_emails": ["yashchauhan1775@gmail.com"]}'::jsonb
+    '{"bootstrap_emails": ["admin@lookit.studio"]}'::jsonb
   );
 
 -- ---------------------------------------------------------------------------
--- Seed: bootstrap admin (temp password — change after first login)
--- password: LookitAdmin!change-me
+-- Seed: master admin (root user)
+-- email: admin@lookit.studio  password: Admin@lookit.1982
 -- ---------------------------------------------------------------------------
 INSERT INTO users (name, email, password_hash, studio_name, role, status)
 VALUES (
-  'Yash Chauhan',
-  'yashchauhan1775@gmail.com',
-  '$2b$10$1VHrBItqXbpUTLJIowcLVux013JPJQ6jpYRRiZ8aFSo6EWaJO4Hsy',
+  'Lookit Admin',
+  'admin@lookit.studio',
+  '$2b$10$VnXm72LiAZx6qcdT9pzArOygMqqghM/4TO5SPXf/ZANL7Y5uw4tpq',
   'Lookit',
   'admin',
   'active'
 )
 ON CONFLICT (email) DO UPDATE
 SET
+  password_hash = EXCLUDED.password_hash,
   role = 'admin',
   status = 'active',
   updated_at = now();
@@ -427,9 +428,9 @@ SELECT
   'admin.bootstrap',
   'user',
   u.id,
-  '{"note": "Seeded/promoted admin from migration", "email": "yashchauhan1775@gmail.com"}'::jsonb
+  '{"note": "Seeded master admin from migration", "email": "admin@lookit.studio"}'::jsonb
 FROM users u
-WHERE u.email = 'yashchauhan1775@gmail.com';
+WHERE u.email = 'admin@lookit.studio';
 
 -- migrate:down
 

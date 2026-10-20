@@ -58,7 +58,7 @@ const envSchema = z.object({
     R2_PUBLIC_BASE_URL: z.string().default('https://media.lookit.studio'),
 
     // Lookit
-    ADMIN_EMAIL: z.email().default('yashchauhan1775@gmail.com'),
+    ADMIN_EMAIL: z.email().default('admin@lookit.studio'),
     MAIL_FROM: z.string().optional(),
     APP_BASE_URL: z.string().default('http://localhost:5173'),
     API_BASE_URL: z.string().default('http://localhost:3007'),

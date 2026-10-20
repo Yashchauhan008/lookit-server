@@ -1,0 +1,31 @@
+import type { NextFunction, Request, Response } from 'express';
+import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
+import { STATUS_CODES } from '@/shared/constants/status-codes.js';
+import z from 'zod';
+import { publicEventWithBanner, type EventRow } from '../events.helpers.js';
+
+export const ValidationSchema = {
+    params: z.object({ id: z.uuid() }),
+};
+
+export async function Controller(
+    req: Request,
+    res: Response,
+    _next: NextFunction,
+    db: DatabaseClient,
+) {
+    const { id } = req.params as z.infer<typeof ValidationSchema.params>;
+    const row = await db.queryOne<EventRow>(
+        `
+            UPDATE events
+            SET cover_desktop_key = NULL, cover_mobile_key = NULL, updated_at = now()
+            WHERE id = $1 AND owner_id = $2 AND status <> 'deleted'
+            RETURNING *, 0 AS photo_count
+        `,
+        [id, req.user!.id],
+    );
+    if (!row) {
+        return res.status(STATUS_CODES.NOT_FOUND).json({ message: 'Event not found' });
+    }
+    return res.status(STATUS_CODES.OK).json({ event: await publicEventWithBanner(row) });
+}

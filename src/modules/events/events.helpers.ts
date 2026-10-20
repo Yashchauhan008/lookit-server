@@ -1,3 +1,6 @@
+import { signedGetUrl } from '@/shared/configs/media-storage.js';
+import Logger from '@/shared/configs/logger.js';
+
 export function slugifyBase(input: string): string {
     const base = input
         .toLowerCase()
@@ -26,6 +29,7 @@ export type EventRow = {
     name: string;
     description: string | null;
     event_date: string | null;
+    end_date: string | null;
     visibility: 'selfie_only' | 'full_gallery';
     pin_hash: string | null;
     theme: Record<string, unknown>;
@@ -45,6 +49,7 @@ export function publicEvent(row: EventRow) {
         name: row.name,
         description: row.description,
         event_date: row.event_date,
+        end_date: row.end_date,
         visibility: row.visibility,
         theme: row.theme ?? {},
         cover_desktop_key: row.cover_desktop_key,
@@ -55,4 +60,18 @@ export function publicEvent(row: EventRow) {
         updated_at: row.updated_at,
         photo_count: Number(row.photo_count ?? 0),
     };
+}
+
+/** Event JSON plus a short-lived signed banner URL (banner lives in private media storage). */
+export async function publicEventWithBanner(row: EventRow) {
+    const base = publicEvent(row);
+    let banner_url: string | null = null;
+    if (row.cover_desktop_key) {
+        try {
+            banner_url = await signedGetUrl(row.cover_desktop_key, 3600);
+        } catch (error) {
+            Logger.warn(`banner url signing failed for event ${row.id}: ${(error as Error).message}`);
+        }
+    }
+    return { ...base, banner_url };
 }

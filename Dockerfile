@@ -22,9 +22,10 @@ RUN npm ci --only=production
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/db ./db
+COPY --from=builder /app/email-templates ./email-templates
 
 RUN mkdir -p files tmp logs
 
 EXPOSE 3007
 
-CMD ["sh", "-c", "npx dbmate up && npm run start"]
+CMD ["sh", "-c", "npx dbmate up && npm run start:api"]

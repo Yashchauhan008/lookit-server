@@ -12,11 +12,13 @@ export type PurchaseRow = {
     status: string;
 };
 
-/** Active purchase with remaining quota, or auto-grant trial_7d once. */
+/** Active purchase with remaining quota, or auto-grant free_30d once. */
 export async function ensureActivePurchase(
     db: DatabaseClient,
     userId: string,
 ): Promise<PurchaseRow> {
+    await releaseExpiredSessions(db, userId);
+
     const existing = await db.queryOne<PurchaseRow>(
         `
             SELECT *
@@ -38,7 +40,7 @@ export async function ensureActivePurchase(
             SELECT pp.id
             FROM plan_purchases pp
             JOIN plans p ON p.id = pp.plan_id
-            WHERE pp.user_id = $1 AND p.code = 'trial_7d'
+            WHERE pp.user_id = $1 AND p.code = 'free_30d'
             LIMIT 1
         `,
         [userId],
@@ -65,7 +67,7 @@ export async function ensureActivePurchase(
               now() + make_interval(days => p.retention_days),
               'active'
             FROM plans p
-            WHERE p.code = 'trial_7d' AND p.is_active = true
+            WHERE p.code = 'free_30d' AND p.is_active = true
             RETURNING *
         `,
         [userId],
@@ -144,5 +146,55 @@ export async function releaseReserved(
             WHERE id = $1
         `,
         [purchaseId, count],
+    );
+}
+
+/**
+ * Upload sessions that expired while still open never gave their reserved photos back.
+ * Expire them and return the unfinished part of each reservation to its pack.
+ * Pass a userId to scope the sweep; omit it to sweep everyone.
+ */
+export async function releaseExpiredSessions(db: DatabaseClient, userId?: string): Promise<void> {
+    await db.query(
+        `
+            WITH stale AS (
+              SELECT id, purchase_id, reserved_count - completed_count AS unused
+              FROM upload_sessions
+              WHERE status = 'open'
+                AND expires_at < now()
+                AND ($1::uuid IS NULL OR user_id = $1)
+              FOR UPDATE
+            ),
+            mark AS (
+              UPDATE upload_sessions s
+              SET status = 'expired', reserved_count = s.completed_count, updated_at = now()
+              FROM stale
+              WHERE s.id = stale.id
+              RETURNING s.id
+            ),
+            failed AS (
+              UPDATE photos
+              SET status = 'failed', error = 'session_expired',
+                  multipart_upload_id = NULL, updated_at = now()
+              WHERE upload_session_id IN (SELECT id FROM stale) AND status = 'uploading'
+              RETURNING id
+            ),
+            per AS (
+              SELECT purchase_id, SUM(unused)::int AS n FROM stale GROUP BY purchase_id
+            )
+            UPDATE plan_purchases pp
+            SET photos_reserved = GREATEST(0, pp.photos_reserved - per.n),
+                updated_at = now(),
+                status = CASE
+                  WHEN pp.status = 'exhausted'
+                       AND pp.photos_used + GREATEST(0, pp.photos_reserved - per.n) < pp.photo_quota
+                       AND pp.upload_window_end > now()
+                  THEN 'active'
+                  ELSE pp.status
+                END
+            FROM per
+            WHERE pp.id = per.purchase_id
+        `,
+        [userId ?? null],
     );
 }

@@ -50,9 +50,25 @@ export async function Controller(
         code: otp,
     });
 
-    sendMail({ to: email, subject: 'Email Verification', html: emailHtml }).catch((error) => {
-        Logger.error(error.message);
-    });
+    try {
+        const mailResult = await sendMail({
+            to: email,
+            subject: 'Your Lookit verification code',
+            html: emailHtml,
+            text: `Hello ${name}, your Lookit verification code is ${otp}. It is valid for 10 minutes.`,
+        });
+        Logger.info(
+            `OTP email sent to ${email} messageId=${mailResult.messageId} accepted=${mailResult.accepted.join(',')}`,
+        );
+    } catch (error) {
+        Logger.error(
+            `OTP email failed for ${email}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        return res.status(StatusCodes.BAD_GATEWAY).json({
+            message: 'Could not send OTP email. Please try again.',
+            code: 'otp_email_failed',
+        });
+    }
 
     // Dummy SMTP in local — expose OTP so we can finish the flow without real mail
     const payload: Record<string, unknown> = {

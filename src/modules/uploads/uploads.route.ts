@@ -36,6 +36,11 @@ import {
     ValidationSchema as listPhotosSchema,
 } from './controllers/list-photos.js';
 
+import {
+    Controller as checkDuplicates,
+    ValidationSchema as checkDuplicatesSchema,
+} from './controllers/check-duplicates.js';
+
 const router = Router({ mergeParams: true });
 
 router.use(requireAuth);
@@ -67,6 +72,10 @@ router
 router
     .route('/uploads/photos/:photoId/parts')
     .get(validate(listPartsSchema), withDatabase(listParts));
+
+router
+    .route('/uploads/check-duplicates')
+    .post(validate(checkDuplicatesSchema), withDatabase(checkDuplicates));
 
 router.route('/photos').get(validate(listPhotosSchema), withDatabase(listPhotos));
 

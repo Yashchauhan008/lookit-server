@@ -8,14 +8,26 @@ export async function renderEmailTemplates(templateName: string, data: Record<st
     return ejs.renderFile(templatePath, data);
 }
 
+function htmlToText(html: string): string {
+    return html
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 export async function sendMail({
     to,
     subject,
     html,
+    text,
 }: {
     to: string;
     subject: string;
     html: string;
+    text?: string;
 }) {
     const transport = nodemailer.createTransport({
         host: env.SMTP_HOST,
@@ -25,12 +37,16 @@ export async function sendMail({
             user: env.SMTP_USER,
             pass: env.SMTP_PASSWORD,
         },
+        connectionTimeout: 15_000,
+        greetingTimeout: 15_000,
+        socketTimeout: 45_000,
     });
     const result = await transport.sendMail({
-        from: env.SMTP_USER,
+        from: env.MAIL_FROM || env.SMTP_USER,
         to,
         subject,
         html,
+        text: text || htmlToText(html),
     });
     return result;
 }

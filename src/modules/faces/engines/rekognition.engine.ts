@@ -57,6 +57,7 @@ export class RekognitionFaceEngine implements FaceEngine {
                 QualityFilter: 'AUTO',
                 DetectionAttributes: ['DEFAULT'],
             }),
+            { abortSignal: AbortSignal.timeout(60_000) },
         );
 
         return (result.FaceRecords || []).map((rec) => {
@@ -100,6 +101,7 @@ export class RekognitionFaceEngine implements FaceEngine {
                     FaceMatchThreshold: threshold,
                     MaxFaces: 4096,
                 }),
+                { abortSignal: AbortSignal.timeout(15_000) },
             );
 
             const matches = result.FaceMatches || [];

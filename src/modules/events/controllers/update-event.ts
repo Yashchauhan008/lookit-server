@@ -3,7 +3,7 @@ import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
 import { STATUS_CODES } from '@/shared/constants/status-codes.js';
 import z from 'zod';
 import bcrypt from 'bcryptjs';
-import { publicEvent, type EventRow } from '../events.helpers.js';
+import { publicEventWithBanner, type EventRow } from '../events.helpers.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -13,6 +13,11 @@ export const ValidationSchema = {
         name: z.string().trim().min(1).max(255).optional(),
         description: z.string().trim().max(5000).optional().nullable(),
         event_date: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .optional()
+            .nullable(),
+        end_date: z
             .string()
             .regex(/^\d{4}-\d{2}-\d{2}$/)
             .optional()
@@ -46,6 +51,14 @@ export async function Controller(
         return res.status(STATUS_CODES.NOT_FOUND).json({ message: 'Event not found' });
     }
 
+    const start = body.event_date !== undefined ? body.event_date : existing.event_date;
+    const end = body.end_date !== undefined ? body.end_date : existing.end_date;
+    if (start && end && String(end).slice(0, 10) < String(start).slice(0, 10)) {
+        return res
+            .status(STATUS_CODES.BAD_REQUEST)
+            .json({ message: 'End date must be on or after the start date' });
+    }
+
     let pinHash = existing.pin_hash;
     if (body.clear_pin) pinHash = null;
     else if (body.pin) pinHash = await bcrypt.hash(body.pin, 10);
@@ -56,6 +69,7 @@ export async function Controller(
               name = COALESCE($3, name),
               description = CASE WHEN $4::boolean THEN $5 ELSE description END,
               event_date = CASE WHEN $6::boolean THEN $7::date ELSE event_date END,
+              end_date = CASE WHEN $12::boolean THEN $13::date ELSE end_date END,
               visibility = COALESCE($8, visibility),
               pin_hash = $9,
               theme = COALESCE($10::jsonb, theme),
@@ -80,10 +94,12 @@ export async function Controller(
             pinHash,
             body.theme !== undefined ? JSON.stringify(body.theme) : null,
             body.status ?? null,
+            body.end_date !== undefined,
+            body.end_date ?? null,
         ],
     );
 
     return res.status(STATUS_CODES.OK).json({
-        event: publicEvent(row!),
+        event: await publicEventWithBanner(row!),
     });
 }

@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
 import { STATUS_CODES } from '@/shared/constants/status-codes.js';
 import z from 'zod';
-import { publicEvent, type EventRow } from '../events.helpers.js';
+import { publicEventWithBanner, type EventRow } from '../events.helpers.js';
 import env from '@/shared/configs/env.js';
 
 export const ValidationSchema = {
@@ -40,7 +40,7 @@ export async function Controller(
     }
 
     return res.status(STATUS_CODES.OK).json({
-        event: publicEvent(row),
+        event: await publicEventWithBanner(row),
         share_url: `${env.APP_BASE_URL}/e/${row.slug}`,
     });
 }

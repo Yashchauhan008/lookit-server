@@ -26,6 +26,14 @@ import {
     ValidationSchema as getConsentTextSchema,
 } from '@/modules/guest/controllers/get-consent-text.js';
 import {
+    Controller as getMyResults,
+    ValidationSchema as getMyResultsSchema,
+} from '@/modules/guest/controllers/get-my-results.js';
+import {
+    Controller as deleteMyScan,
+    ValidationSchema as deleteMyScanSchema,
+} from '@/modules/guest/controllers/delete-my-scan.js';
+import {
     requireGuest,
     requireGuestConsent,
 } from '@/modules/guest/middlewares/require-guest.js';
@@ -64,6 +72,10 @@ router
         validate(searchBySelfieSchema),
         withDatabase(searchBySelfie),
     );
+
+router.route('/:slug/my-results').post(validate(getMyResultsSchema), withDatabase(getMyResults));
+
+router.route('/:slug/my-scan/delete').post(validate(deleteMyScanSchema), withDatabase(deleteMyScan));
 
 router
     .route('/:slug/photos/:photoId/url')

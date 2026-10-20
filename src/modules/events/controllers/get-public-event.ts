@@ -2,6 +2,8 @@ import type { NextFunction, Request, Response } from 'express';
 import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
 import { STATUS_CODES } from '@/shared/constants/status-codes.js';
 import z from 'zod';
+import { signedGetUrl } from '@/shared/configs/media-storage.js';
+import Logger from '@/shared/configs/logger.js';
 
 export const ValidationSchema = {
     params: z.object({
@@ -29,6 +31,7 @@ export async function Controller(
         name: string;
         description: string | null;
         event_date: string | null;
+        end_date: string | null;
         visibility: string;
         pin_hash: string | null;
         theme: Record<string, unknown>;
@@ -38,7 +41,7 @@ export async function Controller(
         owner_name: string;
     }>(
         `
-            SELECT e.id, e.slug, e.name, e.description, e.event_date, e.visibility,
+            SELECT e.id, e.slug, e.name, e.description, e.event_date, e.end_date, e.visibility,
                    e.pin_hash, e.theme, e.cover_desktop_key, e.cover_mobile_key,
                    u.studio_name, u.name AS owner_name
             FROM events e
@@ -54,6 +57,15 @@ export async function Controller(
         return res.status(STATUS_CODES.NOT_FOUND).json({ message: 'Event not found' });
     }
 
+    let bannerUrl: string | null = null;
+    if (row.cover_desktop_key) {
+        try {
+            bannerUrl = await signedGetUrl(row.cover_desktop_key, 3600);
+        } catch (error) {
+            Logger.warn(`banner url signing failed for event ${row.id}: ${(error as Error).message}`);
+        }
+    }
+
     return res.status(STATUS_CODES.OK).json({
         event: {
             id: row.id,
@@ -61,11 +73,13 @@ export async function Controller(
             name: row.name,
             description: row.description,
             event_date: row.event_date,
+            end_date: row.end_date,
+            banner_url: bannerUrl,
             visibility: row.visibility,
             theme: row.theme ?? {},
             cover_desktop_key: row.cover_desktop_key,
             cover_mobile_key: row.cover_mobile_key,
-            needs_pin: Boolean(row.pin_hash),
+            needs_pin: false,
             studio: {
                 name: row.studio_name || row.owner_name,
             },

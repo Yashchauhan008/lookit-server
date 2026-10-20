@@ -3,13 +3,18 @@ import type { DatabaseClient } from '@/shared/helpers/database.helper.js';
 import { STATUS_CODES } from '@/shared/constants/status-codes.js';
 import z from 'zod';
 import bcrypt from 'bcryptjs';
-import { publicEvent, randomSuffix, slugifyBase, type EventRow } from '../events.helpers.js';
+import { publicEventWithBanner, randomSuffix, slugifyBase, type EventRow } from '../events.helpers.js';
 
 export const ValidationSchema = {
     body: z.object({
         name: z.string().trim().min(1).max(255),
         description: z.string().trim().max(5000).optional().nullable(),
         event_date: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .optional()
+            .nullable(),
+        end_date: z
             .string()
             .regex(/^\d{4}-\d{2}-\d{2}$/)
             .optional()
@@ -46,6 +51,12 @@ export async function Controller(
 ) {
     const body = req.body as z.infer<typeof ValidationSchema.body>;
 
+    if (body.event_date && body.end_date && body.end_date < body.event_date) {
+        return res
+            .status(STATUS_CODES.BAD_REQUEST)
+            .json({ message: 'End date must be on or after the start date' });
+    }
+
     const baseSlug = body.slug || slugifyBase(body.name);
     const slug = await uniqueSlug(db, baseSlug);
     const pinHash = body.pin ? await bcrypt.hash(body.pin, 10) : null;
@@ -53,10 +64,10 @@ export async function Controller(
     const row = await db.queryOne<EventRow>(
         `
             INSERT INTO events (
-              owner_id, slug, name, description, event_date,
+              owner_id, slug, name, description, event_date, end_date,
               visibility, pin_hash, theme, status
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'active')
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, 'active')
             RETURNING *, 0 AS photo_count
         `,
         [
@@ -65,6 +76,7 @@ export async function Controller(
             body.name,
             body.description ?? null,
             body.event_date ?? null,
+            body.end_date ?? null,
             body.visibility,
             pinHash,
             JSON.stringify(body.theme ?? {}),
@@ -72,6 +84,6 @@ export async function Controller(
     );
 
     return res.status(STATUS_CODES.CREATED).json({
-        event: publicEvent(row!),
+        event: await publicEventWithBanner(row!),
     });
 }

@@ -27,5 +27,5 @@ export const FlushUnTrackedFilesJob = isProduction
 
 // Run at 2:00 AM every 3 days
 export const FlushFilesJob = isProduction
-    ? cron.createTask('0 1 */3 * *', './scripts/flushFiles.script.js', { timezone: 'Asia/Kolkata' })
+    ? cron.createTask('0 1 */3 * *', './scripts/flush-files.script.js', { timezone: 'Asia/Kolkata' })
     : cron.createTask('0 1 */3 * *', flushFilesTask, { timezone: 'Asia/Kolkata' });
